@@ -90,9 +90,9 @@
         <!--<table schema="test" tableName="T_ZDT" domainObjectName="Zdt">-->
             <!--<generatedKey column="id" sqlStatement="MySql" identity="true"/>-->
         <!--</table>-->
-        <!--<table schema="test" tableName="T_ZHD" domainObjectName="Zhd">-->
-            <!--<generatedKey column="id" sqlStatement="MySql" identity="true"/>-->
-        <!--</table>-->
+        <table schema="test" tableName="t_weixin_info" domainObjectName="WeixinInfo">
+            <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+        </table>
 
     </context>
 

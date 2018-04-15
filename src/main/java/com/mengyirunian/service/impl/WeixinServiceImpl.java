@@ -63,6 +63,10 @@ public class WeixinServiceImpl implements WeixinService {
                     String name = arrStr[0].trim();
                     if (content.endsWith(BIND_STR)) {
                         String code = arrStr[1].trim();
+                        boolean bind = existOpenId(fromUser);
+                        if (bind) {
+                            return "您的ID已被绑定，请联系管理员";
+                        }
                         boolean flag = bindNameAndCode(name, code, fromUser);
                         return flag ? BINDSUCC_STR : FAIL_NAME_CODE_STR;
                     } else if (content.endsWith(INFO_STR)) {
@@ -120,7 +124,9 @@ public class WeixinServiceImpl implements WeixinService {
 
                         //知贷通
                         if (zdtList.size() == 1) {
-                            companyDto.setName(zdtList.get(0).getName());
+                            if (StringUtils.isEmpty(companyDto.getName())) {
+                                companyDto.setName(zdtList.get(0).getName());
+                            }
                             companyDto.setZdt(zdtList.get(0).getAmount());
                         } else {
                             companyDto.setZdt("0");
@@ -128,7 +134,9 @@ public class WeixinServiceImpl implements WeixinService {
 
                         //苏科贷
                         if (skdList.size() == 1) {
-                            companyDto.setName(skdList.get(0).getName());
+                            if (StringUtils.isEmpty(companyDto.getName())) {
+                                companyDto.setName(skdList.get(0).getName());
+                            }
                             companyDto.setSkd(skdList.get(0).getSkd());
                         } else {
                             companyDto.setSkd(1);
@@ -136,7 +144,9 @@ public class WeixinServiceImpl implements WeixinService {
 
                         //转化贷
                         if (zhdList.size() == 1) {
-                            companyDto.setName(zhdList.get(0).getName());
+                            if (StringUtils.isEmpty(companyDto.getName())) {
+                                companyDto.setName(zhdList.get(0).getName());
+                            }
                             companyDto.setZhd(zhdList.get(0).getZhd());
                         } else {
                             companyDto.setZhd(1);
@@ -144,7 +154,9 @@ public class WeixinServiceImpl implements WeixinService {
 
                         //高新技术
                         if (gxjsList.size() == 1) {
-                            companyDto.setName(gxjsList.get(0).getName());
+                            if (StringUtils.isEmpty(companyDto.getName())) {
+                                companyDto.setName(gxjsList.get(0).getName());
+                            }
                             companyDto.setGxjs(gxjsList.get(0).getGxjs());
                         } else {
                             companyDto.setGxjs(1);
@@ -152,7 +164,9 @@ public class WeixinServiceImpl implements WeixinService {
 
                         //农业龙头
                         if (nyltList.size() == 1) {
-                            companyDto.setName(nyltList.get(0).getName());
+                            if (StringUtils.isEmpty(companyDto.getName())) {
+                                companyDto.setName(nyltList.get(0).getName());
+                            }
                             companyDto.setNylt(nyltList.get(0).getNylt());
                         } else {
                             companyDto.setNylt(1);
@@ -160,7 +174,9 @@ public class WeixinServiceImpl implements WeixinService {
 
                         // 金融授信
                         if (jrsxList.size() == 1) {
-                            companyDto.setName(jrsxList.get(0).getName());
+                            if (StringUtils.isEmpty(companyDto.getName())) {
+                                companyDto.setName(jrsxList.get(0).getName());
+                            }
                             companyDto.setJrsx(jrsxList.get(0).getJrsx());
                         } else {
                             companyDto.setJrsx("0");
@@ -168,7 +184,9 @@ public class WeixinServiceImpl implements WeixinService {
 
                         // 上市情况
                         if (ssqkList.size() == 1) {
-                            companyDto.setName(ssqkList.get(0).getName());
+                            if (StringUtils.isEmpty(companyDto.getName())) {
+                                companyDto.setName(ssqkList.get(0).getName());
+                            }
                             companyDto.setSsqk(ssqkList.get(0).getType());
                         } else {
                             companyDto.setSsqk("否");
@@ -176,7 +194,9 @@ public class WeixinServiceImpl implements WeixinService {
 
                         // 新三板
                         if (xsbList.size() == 1) {
-                            companyDto.setName(xsbList.get(0).getName());
+                            if (StringUtils.isEmpty(companyDto.getName())) {
+                                companyDto.setName(xsbList.get(0).getName());
+                            }
                             companyDto.setXsb(xsbList.get(0).getXsb());
                         } else {
                             companyDto.setXsb(1);
@@ -185,7 +205,9 @@ public class WeixinServiceImpl implements WeixinService {
                         // 进出口
                         if (jckList.size() == 1) {
                             Jck jck = jckList.get(0);
-                            companyDto.setName(jck.getName());
+                            if (StringUtils.isEmpty(companyDto.getName())) {
+                                companyDto.setName(jck.getName());
+                            }
                             companyDto.setJk2016(jck.getJk2016());
                             companyDto.setJk2017(jck.getJk2017());
                             companyDto.setCk2016(jck.getCk2016());
@@ -205,11 +227,11 @@ public class WeixinServiceImpl implements WeixinService {
                                 .append("结算通宝:").append(companyDto.getJstb()).append("万元\n")
                                 .append("知贷通:").append(companyDto.getZdt()).append("万元\n")
                                 .append("苏科贷:").append(companyDto.getSkd() == 0 ? "是\n" : "否\n")
-                                .append("成果转化:").append(companyDto.getZhd() == 0 ? "是\n" : "否\n")
+                                .append("转化贷:").append(companyDto.getZhd() == 0 ? "是\n" : "否\n")
                                 .append("高新技术:").append(companyDto.getGxjs() == 0 ? "是\n" : "否\n")
                                 .append("农业龙头:").append(companyDto.getNylt() == 0 ? "是\n" : "否\n")
                                 .append("金融机构:").append(companyDto.getJrsx()).append("万元\n")
-                                .append("上市情况").append(companyDto.getSsqk())
+                                .append("上市情况").append(companyDto.getSsqk()).append("\n")
                                 .append("新三板:").append(companyDto.getXsb() == 0 ? "是\n" : "否\n")
                                 .append("近两年进出口额:").append("进口 ")
                                 .append(companyDto.getJk2016() + "," + companyDto.getJk2017()).append(";出口:")
