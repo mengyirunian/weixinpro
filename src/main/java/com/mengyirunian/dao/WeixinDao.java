@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -46,17 +47,20 @@ public class WeixinDao {
         return !CollectionUtils.isEmpty(userMapper.selectByExample(userCriteria));
     }
 
-    public boolean bindNameAndCode(String name, String code, String fromUser) {
+    public int bindNameAndCode(String name, String code, String fromUser) {
         UserCriteria userCriteria = new UserCriteria();
         userCriteria.createCriteria().andNameEqualTo(name).andCodeEqualTo(code);
         List<User> userList = userMapper.selectByExample(userCriteria);
         if (CollectionUtils.isEmpty(userList)) {
-            return false;
+            return -1;
         }
         User user = userList.get(0);
+        if (!StringUtils.isEmpty(user.getOpenid())) {
+            return -2;
+        }
         user.setOpenid(fromUser);
         userMapper.updateByPrimaryKey(user);
-        return true;
+        return 0;
     }
 
     public List<Jstb> getJstbList(String name) {
@@ -130,4 +134,5 @@ public class WeixinDao {
         List<Jck> jckList = jckMapper.selectByExample(jckCriteria);
         return CollectionUtils.isEmpty(jckList) ? Lists.newArrayList() : jckList;
     }
+
 }

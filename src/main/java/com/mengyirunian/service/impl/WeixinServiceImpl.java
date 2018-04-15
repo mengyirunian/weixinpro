@@ -31,6 +31,7 @@ public class WeixinServiceImpl implements WeixinService {
             "2.查询信息请发送：姓名@info。\n" +
             "3.重新发送请发送：帮助或者help。";
     private static final String DEFAULT_STR = "请输入正确的内容";
+    private static final String DE_USED = "该账号已经被绑定";
     private static final String NONBIND_STR = "您还没有绑定过，请先绑定。";
     private static final String BINDSUCC_STR = "绑定成功";
     private static final String FAIL_NAME_CODE_STR = "该姓名与编码信息有误";
@@ -67,8 +68,8 @@ public class WeixinServiceImpl implements WeixinService {
                         if (bind) {
                             return "您的ID已被绑定，请联系管理员";
                         }
-                        boolean flag = bindNameAndCode(name, code, fromUser);
-                        return flag ? BINDSUCC_STR : FAIL_NAME_CODE_STR;
+                        int flag = bindNameAndCode(name, code, fromUser);
+                        return flag == 0 ? BINDSUCC_STR : (flag == -1 ? FAIL_NAME_CODE_STR : DE_USED);
                     } else if (content.endsWith(INFO_STR)) {
                         name = eliminate(name);
                         List<Jstb> jstbList = weixinDao.getJstbList(name);
@@ -231,7 +232,7 @@ public class WeixinServiceImpl implements WeixinService {
                                 .append("高新技术:").append(companyDto.getGxjs() == 0 ? "是\n" : "否\n")
                                 .append("农业龙头:").append(companyDto.getNylt() == 0 ? "是\n" : "否\n")
                                 .append("金融机构:").append(companyDto.getJrsx()).append("万元\n")
-                                .append("上市情况").append(companyDto.getSsqk()).append("\n")
+                                .append("上市情况:").append(companyDto.getSsqk()).append("\n")
                                 .append("新三板:").append(companyDto.getXsb() == 0 ? "是\n" : "否\n")
                                 .append("近两年进出口额:").append("进口 ")
                                 .append(companyDto.getJk2016() + "," + companyDto.getJk2017()).append(";出口:")
@@ -244,7 +245,7 @@ public class WeixinServiceImpl implements WeixinService {
         return DEFAULT_STR;
     }
 
-    private boolean bindNameAndCode(String name, String code, String fromUser) {
+    private int bindNameAndCode(String name, String code, String fromUser) {
         return weixinDao.bindNameAndCode(name, code, fromUser);
     }
 
