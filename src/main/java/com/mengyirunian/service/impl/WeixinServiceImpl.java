@@ -92,6 +92,10 @@ public class WeixinServiceImpl implements WeixinService {
                         if (gxjsList.size() > 1) {
                             return QUERY_STR;
                         }
+                        List<Kjlx> kjlxList = weixinDao.getKjlxList(name);
+                        if (kjlxList.size() > 1) {
+                            return QUERY_STR;
+                        }
                         List<Nylt> nyltList = weixinDao.getNyltList(name);
                         if (nyltList.size() > 1) {
                             return QUERY_STR;
@@ -163,6 +167,16 @@ public class WeixinServiceImpl implements WeixinService {
                             companyDto.setGxjs(1);
                         }
 
+                        //科技类型
+                        if (kjlxList.size() == 1) {
+                            if (StringUtils.isEmpty(companyDto.getName())) {
+                                companyDto.setName(kjlxList.get(0).getName());
+                            }
+                            companyDto.setKjlx(kjlxList.get(0).getKjlx());
+                        } else {
+                            companyDto.setKjlx("无");
+                        }
+
                         //农业龙头
                         if (nyltList.size() == 1) {
                             if (StringUtils.isEmpty(companyDto.getName())) {
@@ -230,6 +244,7 @@ public class WeixinServiceImpl implements WeixinService {
                                 .append("苏科贷:").append(companyDto.getSkd() == 0 ? "是\n" : "否\n")
                                 .append("转化贷:").append(companyDto.getZhd() == 0 ? "是\n" : "否\n")
                                 .append("高新技术:").append(companyDto.getGxjs() == 0 ? "是\n" : "否\n")
+                                .append("科技类型:").append(companyDto.getKjlx()).append("\n")
                                 .append("农业龙头:").append(companyDto.getNylt() == 0 ? "是\n" : "否\n")
                                 .append("金融机构:").append(companyDto.getJrsx()).append("万元\n")
                                 .append("上市情况:").append(companyDto.getSsqk()).append("\n")

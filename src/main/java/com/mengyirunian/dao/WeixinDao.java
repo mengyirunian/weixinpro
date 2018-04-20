@@ -40,6 +40,8 @@ public class WeixinDao {
     private XsbMapper xsbMapper;
     @Autowired
     private JckMapper jckMapper;
+    @Autowired
+    private KjlxMapper kjlxMapper;
     
     public boolean existOpenId(String fromUser) {
         UserCriteria userCriteria = new UserCriteria();
@@ -135,4 +137,10 @@ public class WeixinDao {
         return CollectionUtils.isEmpty(jckList) ? Lists.newArrayList() : jckList;
     }
 
+    public List<Kjlx> getKjlxList(String name) {
+        KjlxCriteria kjlxCriteria = new KjlxCriteria();
+        kjlxCriteria.createCriteria().andSimpleNameLike("%" + name + "%");
+        List<Kjlx> kjlxList = kjlxMapper.selectByExample(kjlxCriteria);
+        return CollectionUtils.isEmpty(kjlxList) ? Lists.newArrayList() : kjlxList;
+    }
 }

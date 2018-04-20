@@ -20,6 +20,7 @@ public class CompanyDto {
     private Integer skd;
     private Integer zhd;
     private Integer gxjs;
+    private String kjlx;
     private Integer nylt;
     private String jrsx;
     private String ssqk;
