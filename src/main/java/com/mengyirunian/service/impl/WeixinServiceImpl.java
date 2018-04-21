@@ -1,5 +1,6 @@
 package com.mengyirunian.service.impl;
 
+import com.google.common.collect.Sets;
 import com.mengyirunian.dao.WeixinDao;
 import com.mengyirunian.entity.*;
 import com.mengyirunian.service.interfaces.WeixinService;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by Jiaxiayuan on 2018/4/14
@@ -43,7 +45,6 @@ public class WeixinServiceImpl implements WeixinService {
     @Override
     public String getMsg(WxMpXmlMessage message) {
         String fromUser = message.getFromUserName();
-        String touser = message.getToUserName();
         String content = message.getContent();
         String msgType = message.getMsgType();
         StringBuilder sb = new StringBuilder();
@@ -72,6 +73,7 @@ public class WeixinServiceImpl implements WeixinService {
                         return flag == 0 ? BINDSUCC_STR : (flag == -1 ? FAIL_NAME_CODE_STR : DE_USED);
                     } else if (content.endsWith(INFO_STR)) {
                         name = eliminate(name);
+                        Set<String> nameSet = Sets.newHashSet();
                         List<Jstb> jstbList = weixinDao.getJstbList(name);
                         if (jstbList.size() > 1) {
                             return QUERY_STR;
@@ -123,6 +125,7 @@ public class WeixinServiceImpl implements WeixinService {
                         if (jstbList.size() == 1) {
                             companyDto.setName(jstbList.get(0).getName());
                             companyDto.setJstb(jstbList.get(0).getAmount());
+                            nameSet.add(jstbList.get(0).getName());
                         } else {
                             companyDto.setJstb(0);
                         }
@@ -131,6 +134,10 @@ public class WeixinServiceImpl implements WeixinService {
                         if (zdtList.size() == 1) {
                             if (StringUtils.isEmpty(companyDto.getName())) {
                                 companyDto.setName(zdtList.get(0).getName());
+                            }
+                            nameSet.add(zdtList.get(0).getName());
+                            if (nameSet.size() > 1) {
+                                return QUERY_STR;
                             }
                             companyDto.setZdt(zdtList.get(0).getAmount());
                         } else {
@@ -142,6 +149,10 @@ public class WeixinServiceImpl implements WeixinService {
                             if (StringUtils.isEmpty(companyDto.getName())) {
                                 companyDto.setName(skdList.get(0).getName());
                             }
+                            nameSet.add(skdList.get(0).getName());
+                            if (nameSet.size() > 1) {
+                                return QUERY_STR;
+                            }
                             companyDto.setSkd(skdList.get(0).getSkd());
                         } else {
                             companyDto.setSkd(1);
@@ -151,6 +162,10 @@ public class WeixinServiceImpl implements WeixinService {
                         if (zhdList.size() == 1) {
                             if (StringUtils.isEmpty(companyDto.getName())) {
                                 companyDto.setName(zhdList.get(0).getName());
+                            }
+                            nameSet.add(zhdList.get(0).getName());
+                            if (nameSet.size() > 1) {
+                                return QUERY_STR;
                             }
                             companyDto.setZhd(zhdList.get(0).getZhd());
                         } else {
@@ -162,6 +177,10 @@ public class WeixinServiceImpl implements WeixinService {
                             if (StringUtils.isEmpty(companyDto.getName())) {
                                 companyDto.setName(gxjsList.get(0).getName());
                             }
+                            nameSet.add(gxjsList.get(0).getName());
+                            if (nameSet.size() > 1) {
+                                return QUERY_STR;
+                            }
                             companyDto.setGxjs(gxjsList.get(0).getGxjs());
                         } else {
                             companyDto.setGxjs(1);
@@ -171,6 +190,10 @@ public class WeixinServiceImpl implements WeixinService {
                         if (kjlxList.size() == 1) {
                             if (StringUtils.isEmpty(companyDto.getName())) {
                                 companyDto.setName(kjlxList.get(0).getName());
+                            }
+                            nameSet.add(kjlxList.get(0).getName());
+                            if (nameSet.size() > 1) {
+                                return QUERY_STR;
                             }
                             companyDto.setKjlx(kjlxList.get(0).getKjlx());
                         } else {
@@ -182,6 +205,10 @@ public class WeixinServiceImpl implements WeixinService {
                             if (StringUtils.isEmpty(companyDto.getName())) {
                                 companyDto.setName(nyltList.get(0).getName());
                             }
+                            nameSet.add(nyltList.get(0).getName());
+                            if (nameSet.size() > 1) {
+                                return QUERY_STR;
+                            }
                             companyDto.setNylt(nyltList.get(0).getNylt());
                         } else {
                             companyDto.setNylt(1);
@@ -191,6 +218,10 @@ public class WeixinServiceImpl implements WeixinService {
                         if (jrsxList.size() == 1) {
                             if (StringUtils.isEmpty(companyDto.getName())) {
                                 companyDto.setName(jrsxList.get(0).getName());
+                            }
+                            nameSet.add(jrsxList.get(0).getName());
+                            if (nameSet.size() > 1) {
+                                return QUERY_STR;
                             }
                             companyDto.setJrsx(jrsxList.get(0).getJrsx());
                         } else {
@@ -202,6 +233,10 @@ public class WeixinServiceImpl implements WeixinService {
                             if (StringUtils.isEmpty(companyDto.getName())) {
                                 companyDto.setName(ssqkList.get(0).getName());
                             }
+                            nameSet.add(ssqkList.get(0).getName());
+                            if (nameSet.size() > 1) {
+                                return QUERY_STR;
+                            }
                             companyDto.setSsqk(ssqkList.get(0).getType());
                         } else {
                             companyDto.setSsqk("否");
@@ -211,6 +246,10 @@ public class WeixinServiceImpl implements WeixinService {
                         if (xsbList.size() == 1) {
                             if (StringUtils.isEmpty(companyDto.getName())) {
                                 companyDto.setName(xsbList.get(0).getName());
+                            }
+                            nameSet.add(xsbList.get(0).getName());
+                            if (nameSet.size() > 1) {
+                                return QUERY_STR;
                             }
                             companyDto.setXsb(xsbList.get(0).getXsb());
                         } else {
@@ -222,6 +261,10 @@ public class WeixinServiceImpl implements WeixinService {
                             Jck jck = jckList.get(0);
                             if (StringUtils.isEmpty(companyDto.getName())) {
                                 companyDto.setName(jck.getName());
+                            }
+                            nameSet.add(jck.getName());
+                            if (nameSet.size() > 1) {
+                                return QUERY_STR;
                             }
                             companyDto.setJk2016(jck.getJk2016());
                             companyDto.setJk2017(jck.getJk2017());
