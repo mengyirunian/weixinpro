@@ -1,10 +1,10 @@
 package com.mengyirunian.service.impl;
 
-import com.google.common.collect.Sets;
+import com.google.common.collect.Maps;
 import com.mengyirunian.dao.WeixinDao;
 import com.mengyirunian.entity.*;
+import com.mengyirunian.enums.BizTypeEnums;
 import com.mengyirunian.service.interfaces.WeixinService;
-import com.mengyirunian.weixin.CompanyDto;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.mp.bean.WxMpXmlMessage;
 import org.apache.commons.lang3.StringUtils;
@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 /**
  * Created by Jiaxiayuan on 2018/4/14
@@ -26,281 +26,174 @@ public class WeixinServiceImpl implements WeixinService {
     private static final String TEXT_STR = "text";
     private static final String HELP_STR_1 = "帮助";
     private static final String HELP_STR_2 = "help";
-    private static final String BIND_STR = "@bind";
-    private static final String INFO_STR = "@info";
+    private static final String BIND_STR = "@绑定";
+    private static final String INFO_STR = "@查查看";
     private static final String A_STR = "@";
-    private static final String TIP_STR = "1.在操作之前请先绑定。绑定格式发送：姓名@编码@bind。\n" +
-            "2.查询信息请发送：姓名@info。\n" +
-            "3.重新发送请发送：帮助或者help。";
+    private static final String TIP_STR = "1.在操作之前请先绑定：姓名@7位EHR号@绑定。\n" +
+            "2.查询信息请发送：姓名@查查看。\n" +
+            "3.标签释义请发送：标签名称。\n"+
+            "4.如需帮助请发送：帮助或者help。";
     private static final String DEFAULT_STR = "请输入正确的内容";
     private static final String DE_USED = "该账号已经被绑定";
     private static final String NONBIND_STR = "您还没有绑定过，请先绑定。";
     private static final String BINDSUCC_STR = "绑定成功";
     private static final String FAIL_NAME_CODE_STR = "该姓名与编码信息有误";
     private static final String QUERY_STR = "请缩小关键词范围";
+    private static final String ID_LOCKED = "您的ID已被绑定，请联系管理员";
 
     @Autowired
     private WeixinDao weixinDao;
 
-    @Override
-    public String getMsg(WxMpXmlMessage message) {
+    private String dealWithEvent(WxMpXmlMessage message) {
+        if (SUBSCRIBE_STR.equals(message.getEvent())) {
+            return TIP_STR;
+        } else {
+            return DEFAULT_STR;
+        }
+    }
+
+    private String queryBizContext(String name) {
+        StringBuilder sb = new StringBuilder();
+        String companyName = null;
+        Map<Long, String> contentMap = Maps.newLinkedHashMap();
+        for (BizTypeEnums bizTypeEnums : BizTypeEnums.values()) {
+            if (bizTypeEnums.getType() != 0 || bizTypeEnums == BizTypeEnums.DEFAULT) {
+                continue;
+            }
+            List<BizBus> bizBusList = weixinDao.getBizBusList(name, bizTypeEnums.getCode());
+            if (bizBusList.size() > 1) {
+                return QUERY_STR;
+            } else if (bizBusList.size() == 1) {
+                if (StringUtils.isEmpty(companyName)) {
+                    companyName = bizBusList.get(0).getName();
+                } else if (!companyName.equals(bizBusList.get(0).getName())) {
+                    return QUERY_STR;
+                }
+                contentMap.put(bizTypeEnums.getCode(), bizTypeEnums.getDesc() + ":" + bizBusList.get(0).getValue());
+            } else if (bizBusList.isEmpty()) {
+                contentMap.put(bizTypeEnums.getCode(), bizTypeEnums.getDesc() + ":" + bizTypeEnums.getDefaultValue());
+            }
+        }
+
+        // 目前特殊的只有高特精和进出口金额
+        List<Gtj> gtjList = weixinDao.getGtjList(name);
+        if (gtjList.size() > 1) {
+            return QUERY_STR;
+        } else if (gtjList.size() == 1) {
+            Gtj gtj = gtjList.get(0);
+            if (StringUtils.isEmpty(companyName)) {
+                companyName = gtj.getName();
+            } else if (!companyName.equals(gtj.getName())) {
+                return QUERY_STR;
+            }
+            contentMap.put(BizTypeEnums.GTJ.getCode(),
+                    new StringBuilder("高特精[")
+                            .append("pj2016:").append(gtj.getPj2016())
+                            .append(",pj2017:").append(gtj.getPj2017()).append("]").toString());
+        } else {
+            contentMap.put(BizTypeEnums.GTJ.getCode(),new StringBuilder("高特精[")
+                    .append("pj2016:").append(BizTypeEnums.GTJ.getDefaultValue())
+                    .append(",pj2017:").append(BizTypeEnums.GTJ.getDefaultValue()).append("]").toString());
+        }
+
+        // 进出口金额
+        List<Jck> jckList = weixinDao.getJckList(name);
+        if (jckList.size() > 1) {
+            return QUERY_STR;
+        } else if (jckList.size() == 1) {
+            Jck jck = jckList.get(0);
+            if (StringUtils.isEmpty(companyName)) {
+                companyName = jck.getName();
+            } else if (!companyName.equals(jck.getName())) {
+                return QUERY_STR;
+            }
+            contentMap.put(BizTypeEnums.JCK.getCode(),
+                    new StringBuilder("近两年进出口[")
+                            .append("2016年进口(万美元):").append(jck.getJk2016())
+                            .append(",2016年出口(万美元):").append(jck.getCk2016())
+                            .append(",2017年进口(万美元):").append(jck.getJk2017())
+                            .append(",2017年出口(万美元):").append(jck.getCk2017()).append("]").toString());
+        }
+
+        sb.append(companyName).append("\n");
+        for (Long i = 1L; i < BizTypeEnums.values().length; i++) {
+            sb.append(contentMap.get(i)).append("\n");
+        }
+        return sb.toString();
+    }
+
+    private String dealWithTextBiz(WxMpXmlMessage message) {
         String fromUser = message.getFromUserName();
         String content = message.getContent();
-        String msgType = message.getMsgType();
-        StringBuilder sb = new StringBuilder();
-        if (EVENT_STR.equals(msgType)) {
-            if (SUBSCRIBE_STR.equals(message.getEvent())) {
-                return TIP_STR;
-            } else {
-                return DEFAULT_STR;
-            }
-        } else if (TEXT_STR.equals(msgType)) {
-            if (HELP_STR_1.equals(content) || HELP_STR_2.equals(content)) {
-                return TIP_STR;
-            } else if (content.endsWith(BIND_STR) || content.endsWith(INFO_STR)) {
-                if (!existOpenId(fromUser) && content.endsWith(INFO_STR)) {
-                    return NONBIND_STR;
-                } else {
-                    String[] arrStr = content.split(A_STR);
-                    String name = arrStr[0].trim();
-                    if (content.endsWith(BIND_STR)) {
-                        String code = arrStr[1].trim();
-                        boolean bind = existOpenId(fromUser);
-                        if (bind) {
-                            return "您的ID已被绑定，请联系管理员";
-                        }
-                        int flag = bindNameAndCode(name, code, fromUser);
-                        return flag == 0 ? BINDSUCC_STR : (flag == -1 ? FAIL_NAME_CODE_STR : DE_USED);
-                    } else if (content.endsWith(INFO_STR)) {
-                        name = eliminate(name);
-                        Set<String> nameSet = Sets.newHashSet();
-                        List<Jstb> jstbList = weixinDao.getJstbList(name);
-                        if (jstbList.size() > 1) {
-                            return QUERY_STR;
-                        }
-                        List<Zdt> zdtList = weixinDao.getZdtList(name);
-                        if (zdtList.size() > 1) {
-                            return QUERY_STR;
-                        }
-                        List<Skd> skdList = weixinDao.getSkdList(name);
-                        if (skdList.size() > 1) {
-                            return QUERY_STR;
-                        }
-                        List<Zhd> zhdList = weixinDao.getZhdList(name);
-                        if (zhdList.size() > 1) {
-                            return QUERY_STR;
-                        }
-                        List<Gxjs> gxjsList = weixinDao.getGxjsList(name);
-                        if (gxjsList.size() > 1) {
-                            return QUERY_STR;
-                        }
-                        List<Kjlx> kjlxList = weixinDao.getKjlxList(name);
-                        if (kjlxList.size() > 1) {
-                            return QUERY_STR;
-                        }
-                        List<Nylt> nyltList = weixinDao.getNyltList(name);
-                        if (nyltList.size() > 1) {
-                            return QUERY_STR;
-                        }
-                        List<Jrsx> jrsxList = weixinDao.getJrsxList(name);
-                        if (jrsxList.size() > 1) {
-                            return QUERY_STR;
-                        }
-                        List<Ssqk> ssqkList = weixinDao.getSsqkList(name);
-                        if (ssqkList.size() > 1) {
-                            return QUERY_STR;
-                        }
-                        List<Xsb> xsbList = weixinDao.getXsbList(name);
-                        if (xsbList.size() > 1) {
-                            return QUERY_STR;
-                        }
-                        List<Jck> jckList = weixinDao.getJckList(name);
-                        if (jckList.size() > 1) {
-                            return QUERY_STR;
-                        }
-
-                        CompanyDto companyDto = new CompanyDto();
-                        companyDto.setSimpleName(name);
-                        //结算通宝
-                        if (jstbList.size() == 1) {
-                            companyDto.setName(jstbList.get(0).getName());
-                            companyDto.setJstb(jstbList.get(0).getAmount());
-                            nameSet.add(jstbList.get(0).getName());
-                        } else {
-                            companyDto.setJstb(0);
-                        }
-
-                        //知贷通
-                        if (zdtList.size() == 1) {
-                            if (StringUtils.isEmpty(companyDto.getName())) {
-                                companyDto.setName(zdtList.get(0).getName());
-                            }
-                            nameSet.add(zdtList.get(0).getName());
-                            if (nameSet.size() > 1) {
-                                return QUERY_STR;
-                            }
-                            companyDto.setZdt(zdtList.get(0).getAmount());
-                        } else {
-                            companyDto.setZdt("0");
-                        }
-
-                        //苏科贷
-                        if (skdList.size() == 1) {
-                            if (StringUtils.isEmpty(companyDto.getName())) {
-                                companyDto.setName(skdList.get(0).getName());
-                            }
-                            nameSet.add(skdList.get(0).getName());
-                            if (nameSet.size() > 1) {
-                                return QUERY_STR;
-                            }
-                            companyDto.setSkd(skdList.get(0).getSkd());
-                        } else {
-                            companyDto.setSkd(1);
-                        }
-
-                        //转化贷
-                        if (zhdList.size() == 1) {
-                            if (StringUtils.isEmpty(companyDto.getName())) {
-                                companyDto.setName(zhdList.get(0).getName());
-                            }
-                            nameSet.add(zhdList.get(0).getName());
-                            if (nameSet.size() > 1) {
-                                return QUERY_STR;
-                            }
-                            companyDto.setZhd(zhdList.get(0).getZhd());
-                        } else {
-                            companyDto.setZhd(1);
-                        }
-
-                        //高新技术
-                        if (gxjsList.size() == 1) {
-                            if (StringUtils.isEmpty(companyDto.getName())) {
-                                companyDto.setName(gxjsList.get(0).getName());
-                            }
-                            nameSet.add(gxjsList.get(0).getName());
-                            if (nameSet.size() > 1) {
-                                return QUERY_STR;
-                            }
-                            companyDto.setGxjs(gxjsList.get(0).getGxjs());
-                        } else {
-                            companyDto.setGxjs(1);
-                        }
-
-                        //科技类型
-                        if (kjlxList.size() == 1) {
-                            if (StringUtils.isEmpty(companyDto.getName())) {
-                                companyDto.setName(kjlxList.get(0).getName());
-                            }
-                            nameSet.add(kjlxList.get(0).getName());
-                            if (nameSet.size() > 1) {
-                                return QUERY_STR;
-                            }
-                            companyDto.setKjlx(kjlxList.get(0).getKjlx());
-                        } else {
-                            companyDto.setKjlx("无");
-                        }
-
-                        //农业龙头
-                        if (nyltList.size() == 1) {
-                            if (StringUtils.isEmpty(companyDto.getName())) {
-                                companyDto.setName(nyltList.get(0).getName());
-                            }
-                            nameSet.add(nyltList.get(0).getName());
-                            if (nameSet.size() > 1) {
-                                return QUERY_STR;
-                            }
-                            companyDto.setNylt(nyltList.get(0).getNylt());
-                        } else {
-                            companyDto.setNylt(1);
-                        }
-
-                        // 金融授信
-                        if (jrsxList.size() == 1) {
-                            if (StringUtils.isEmpty(companyDto.getName())) {
-                                companyDto.setName(jrsxList.get(0).getName());
-                            }
-                            nameSet.add(jrsxList.get(0).getName());
-                            if (nameSet.size() > 1) {
-                                return QUERY_STR;
-                            }
-                            companyDto.setJrsx(jrsxList.get(0).getJrsx());
-                        } else {
-                            companyDto.setJrsx("0");
-                        }
-
-                        // 上市情况
-                        if (ssqkList.size() == 1) {
-                            if (StringUtils.isEmpty(companyDto.getName())) {
-                                companyDto.setName(ssqkList.get(0).getName());
-                            }
-                            nameSet.add(ssqkList.get(0).getName());
-                            if (nameSet.size() > 1) {
-                                return QUERY_STR;
-                            }
-                            companyDto.setSsqk(ssqkList.get(0).getType());
-                        } else {
-                            companyDto.setSsqk("否");
-                        }
-
-                        // 新三板
-                        if (xsbList.size() == 1) {
-                            if (StringUtils.isEmpty(companyDto.getName())) {
-                                companyDto.setName(xsbList.get(0).getName());
-                            }
-                            nameSet.add(xsbList.get(0).getName());
-                            if (nameSet.size() > 1) {
-                                return QUERY_STR;
-                            }
-                            companyDto.setXsb(xsbList.get(0).getXsb());
-                        } else {
-                            companyDto.setXsb(1);
-                        }
-
-                        // 进出口
-                        if (jckList.size() == 1) {
-                            Jck jck = jckList.get(0);
-                            if (StringUtils.isEmpty(companyDto.getName())) {
-                                companyDto.setName(jck.getName());
-                            }
-                            nameSet.add(jck.getName());
-                            if (nameSet.size() > 1) {
-                                return QUERY_STR;
-                            }
-                            companyDto.setJk2016(jck.getJk2016());
-                            companyDto.setJk2017(jck.getJk2017());
-                            companyDto.setCk2016(jck.getCk2016());
-                            companyDto.setCk2017(jck.getCk2017());
-                        } else {
-                            companyDto.setCk2016(0);
-                            companyDto.setCk2017(0);
-                            companyDto.setJk2016(0);
-                            companyDto.setJk2017(0);
-                        }
-
-                        if (StringUtils.isEmpty(companyDto.getName())) {
-                            return "暂无该公司情况";
-                        }
-
-                        sb.append(companyDto.getName()).append("\n")
-                                .append("结算通宝:").append(companyDto.getJstb()).append("万元\n")
-                                .append("知贷通:").append(companyDto.getZdt()).append("万元\n")
-                                .append("苏科贷:").append(companyDto.getSkd() == 0 ? "是\n" : "否\n")
-                                .append("转化贷:").append(companyDto.getZhd() == 0 ? "是\n" : "否\n")
-                                .append("高新技术:").append(companyDto.getGxjs() == 0 ? "是\n" : "否\n")
-                                .append("科技类型:").append(companyDto.getKjlx()).append("\n")
-                                .append("农业龙头:").append(companyDto.getNylt() == 0 ? "是\n" : "否\n")
-                                .append("金融机构:").append(companyDto.getJrsx()).append("万元\n")
-                                .append("上市情况:").append(companyDto.getSsqk()).append("\n")
-                                .append("新三板:").append(companyDto.getXsb() == 0 ? "是\n" : "否\n")
-                                .append("近两年进出口额:").append("进口 ")
-                                .append(companyDto.getJk2016() + "," + companyDto.getJk2017()).append(";出口:")
-                                .append(companyDto.getCk2016() + "," + companyDto.getCk2017()).append(" 万美元");
-                        return sb.toString();
-                    }
+        if (!existOpenId(fromUser) && content.endsWith(INFO_STR)) {
+            return NONBIND_STR;
+        } else {
+            String[] arrStr = content.split(A_STR);
+            String name = arrStr[0].trim();
+            if (content.endsWith(BIND_STR)) {
+                String code = arrStr[1].trim();
+                boolean bind = existOpenId(fromUser);
+                if (bind) {
+                    return ID_LOCKED;
                 }
+                int flag = bindNameAndCode(name, code, fromUser);
+                switch (flag) {
+                    case 0:
+                        return BINDSUCC_STR;
+                    case -1:
+                        return FAIL_NAME_CODE_STR;
+                    case -2:
+                        return DE_USED;
+                    default:
+                        return DEFAULT_STR;
+                }
+            } else if (content.endsWith(INFO_STR)) {
+                name = eliminate(name);
+                return queryBizContext(name);
             }
         }
         return DEFAULT_STR;
+    }
+
+    @Override
+    public String testName(String name) {
+        String targetName = eliminate(name);
+        return queryBizContext(targetName);
+    }
+
+    private String dealWithText(WxMpXmlMessage message) {
+        String content = message.getContent();
+        if (HELP_STR_1.equals(content) || HELP_STR_2.equals(content)) {
+            return TIP_STR;
+        } else if (content.endsWith(BIND_STR) || content.endsWith(INFO_STR)) {
+            return dealWithTextBiz(message);
+        }
+        return DEFAULT_STR;
+    }
+
+    @Override
+    public String getMsg(WxMpXmlMessage message) {
+        String msgType = message.getMsgType();
+        if (EVENT_STR.equals(msgType)) {
+            return dealWithEvent(message);
+        } else if (TEXT_STR.equals(msgType)) {
+            String detailMsg = dealWithDetail(message);
+            if (detailMsg != null) {
+                return detailMsg;
+            }
+            return dealWithText(message);
+        }
+        return DEFAULT_STR;
+    }
+
+    private String dealWithDetail(WxMpXmlMessage message) {
+        String content = message.getContent();
+        for (BizTypeEnums bizTypeEnums : BizTypeEnums.values()) {
+            if (bizTypeEnums.getDesc().contains(content)) {
+                return bizTypeEnums.getDetail();
+            }
+        }
+        return null;
     }
 
     private int bindNameAndCode(String name, String code, String fromUser) {

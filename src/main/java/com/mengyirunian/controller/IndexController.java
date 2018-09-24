@@ -1,14 +1,10 @@
 package com.mengyirunian.controller;
 
-import com.mengyirunian.dao.WeixinDao;
-import com.mengyirunian.entity.Gxjs;
-import com.mengyirunian.utils.JSONUtils;
+import com.mengyirunian.service.interfaces.WeixinService;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * Created by Jiaxiayuan on 2018/4/14
@@ -20,13 +16,12 @@ import java.util.List;
 public class IndexController {
 
     @Autowired
-    private WeixinDao weixinDao;
+    private WeixinService weixinService;
 
     @RequestMapping(value = "/accesswx", method = RequestMethod.GET)
     @ResponseBody
-    public String index(@RequestParam("name") String name) throws Exception {
-        List<Gxjs> gxjsList = weixinDao.getGxjsList(name);
-        return JSONUtils.list2json(gxjsList);
+    public String testMsg(@RequestParam("name") String name) {
+        return weixinService.testName(name);
     }
 
 }

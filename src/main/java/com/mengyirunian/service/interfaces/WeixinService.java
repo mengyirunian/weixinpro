@@ -7,4 +7,6 @@ public interface WeixinService {
 
     String getMsg(WxMpXmlMessage message);
 
+    String testName(String name);
+
 }

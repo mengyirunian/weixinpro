@@ -60,10 +60,11 @@ public class WxActionController {
     @RequestMapping(value = "/accesswx", method = RequestMethod.POST)
     public void accessWxPost(HttpServletRequest request, HttpServletResponse response) {
         PrintWriter out = null;
-        WxMpXmlOutTextMessage text = null;
+        WxMpXmlOutTextMessage text;
         try {
             WxMpXmlMessage message = WxMpXmlMessage.fromXml(request.getInputStream());
             String msg = weixinService.getMsg(message);
+            log.info("The content dealed is: {}", msg);
             text = WxMpXmlOutTextMessage
                     .TEXT()
                     .toUser(message.getFromUserName())

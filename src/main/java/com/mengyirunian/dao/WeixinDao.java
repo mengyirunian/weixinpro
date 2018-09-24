@@ -42,6 +42,10 @@ public class WeixinDao {
     private JckMapper jckMapper;
     @Autowired
     private KjlxMapper kjlxMapper;
+    @Autowired
+    private BizBusMapper bizBusMapper;
+    @Autowired
+    private GtjMapper gtjMapper;
     
     public boolean existOpenId(String fromUser) {
         UserCriteria userCriteria = new UserCriteria();
@@ -142,5 +146,19 @@ public class WeixinDao {
         kjlxCriteria.createCriteria().andSimpleNameLike("%" + name + "%");
         List<Kjlx> kjlxList = kjlxMapper.selectByExample(kjlxCriteria);
         return CollectionUtils.isEmpty(kjlxList) ? Lists.newArrayList() : kjlxList;
+    }
+
+    public List<BizBus> getBizBusList(String name, Long bizType) {
+        BizBusCriteria bizBusCriteria = new BizBusCriteria();
+        bizBusCriteria.createCriteria().andBizTypeEqualTo(bizType).andSimpleNameLike("%" + name + "%");
+        List<BizBus> bizBusList = bizBusMapper.selectByExample(bizBusCriteria);
+        return CollectionUtils.isEmpty(bizBusList) ? Lists.newArrayList() : bizBusList;
+    }
+
+    public List<Gtj> getGtjList(String name) {
+        GtjCriteria gtjCriteria = new GtjCriteria();
+        gtjCriteria.createCriteria().andSimpleNameLike("%" + name + "%");
+        List<Gtj> gtjList = gtjMapper.selectByExample(gtjCriteria);
+        return CollectionUtils.isEmpty(gtjList) ? Lists.newArrayList() : gtjList;
     }
 }
